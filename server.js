@@ -25,6 +25,10 @@ async function connectDB() {
 }
 connectDB();
 
+app.get("/", (req, res) => {
+  res.send("Backend is running");
+});
+
 // Get all lessons
 app.get("/api/lessons", async (req, res) => {
   try {
