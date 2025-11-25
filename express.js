@@ -98,6 +98,35 @@ app.post("/api/lessons", async (req, res) => {
   }
 });
 
+// Update any attribute(s) of a lesson
+app.put("/api/lessons/:id", async (req, res) => {
+  try {
+    const lessonId = req.params.id;
+    const updates = req.body; // fields to update
+
+    // Ensure request body is not empty
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "No fields provided to update" });
+    }
+
+    const result = await lessonsCollection.updateOne(
+      { _id: new ObjectId(lessonId) },
+      { $set: updates }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Lesson not found" });
+    }
+
+    res.json({ message: "Lesson updated successfully" });
+
+  } catch (err) {
+    console.error("❌ Error updating lesson:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 // Add a new order
 app.post("/api/orders", async (req, res) => {
