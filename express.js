@@ -10,7 +10,6 @@ app.use(express.json());
 
 const publicAssetsPath = path.join(__dirname, 'public');
 
-app.use(express.static(publicAssetsPath));
 
 const uri = process.env.MONGO_URI; 
 const client = new MongoClient(uri);
@@ -21,6 +20,40 @@ let lessonsCollection, ordersCollection;
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
+});
+
+app.get('/:filename', async (req, res, next) => {
+    const filename = req.params.filename;
+    const filePath = path.join(publicAssetsPath, filename);
+
+    // Heuristic: If the request path contains a dot and doesn't start with 'api',
+    // we assume it's a request for a static asset (like an image).
+    if (filename.includes('.') && !filename.startsWith('api')) {
+        try {
+            // 1. Check file existence
+            await fs.access(filePath);
+            
+            // 2. File exists, serve it
+            console.log(`Serving static file: ${filename}`);
+            // Use res.sendFile to send the file content
+            return res.sendFile(filePath);
+            
+        } catch (error) {
+            // 3. File not found (ENOENT error code) - return custom JSON error
+            if (error.code === 'ENOENT') {
+                console.warn(`Static file not found: ${filePath}`);
+                return res.status(404).json({
+                    message: `Requested asset or lesson image '${filename}' not found on the server.`,
+                    status: 404
+                });
+            }
+            // Handle other FS errors (e.g., permissions)
+            console.error(`FS Error serving ${filename}:`, error);
+            return res.status(500).json({ message: "Server error while accessing file.", status: 500 });
+        }
+    }
+    // Not a static file request, proceed to next route (API routes)
+    next();
 });
 
 // Connect to MongoDB
